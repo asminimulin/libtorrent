@@ -43,7 +43,9 @@ else
 		: : $(boost-include-path) ;
 }
 
-VERSION = 10 ;
+# we need version numbers in the form X.Y.Z in order to trigger the built-in
+# support for generating symlinks to the installed library
+VERSION = 10.0.0 ;
 
 rule linking ( properties * )
 {
@@ -844,7 +846,7 @@ rule generate-pkg-config ( properties * )
 	libname = "$(libname).$(VERSION)" ;
 
 	local defines ;
-	for d in [ $(props).raw ] {
+	for d in [ feature.expand $(properties) ] [ $(props).raw ] {
 		switch $(d)
 		{
 			case \<define\>TORRENT_* : {
