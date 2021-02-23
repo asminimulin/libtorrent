@@ -339,7 +339,9 @@ rule tag ( name : type ? : property-set )
 	# windows
 	if [ $(property-set).get <target-os> ] in windows cygwin
 	{
-		return [ virtual-target.add-prefix-and-suffix $(name)-rasterbar-$(VERSION) : $(type) : $(property-set) ] ;
+		# TODO: add version on windows too
+		# return [ virtual-target.add-prefix-and-suffix $(name)-rasterbar-$(VERSION) : $(type) : $(property-set) ] ;
+		return [ virtual-target.add-prefix-and-suffix $(name)-rasterbar : $(type) : $(property-set) ] ;
 	}
 	else
 	{
@@ -893,11 +895,12 @@ rule generate-pkg-config ( properties * )
 		}
 	}
 
+	# TODO: use $(libname) in future versions
 	local config = "Name: libtorrent-rasterbar"
 		"\nDescription: libtorrent is an open source C++ library implementing the BitTorrent protocol"
 		"\nURL: https://libtorrent.org"
 		"\nVersion: $(FULL_VERSION)"
-		"\nLibs: -L$(libdir) -l$(libname) $(shared_deps:J=)"
+		"\nLibs: -L$(libdir) -ltorrent-rasterbar $(shared_deps:J=)"
 		"\nLibs.private: -L$(libdir) $(private_deps:J=)"
 		"\nCflags: -I$(includedir) $(defines:J=)"
 		"\n"
