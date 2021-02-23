@@ -322,19 +322,30 @@ rule building ( properties * )
 
 rule tag ( name : type ? : property-set )
 {
+	# we only care about the names of our output static- or shared library, not
+	# other targets like object files
 	if $(type) != SHARED_LIB && $(type) != STATIC_LIB
 	{
 		return [ virtual-target.add-prefix-and-suffix $(name) : $(type) : $(property-set) ] ;
 	}
 
-	local name = [ virtual-target.add-prefix-and-suffix $(name)-rasterbar : $(type) : $(property-set) ] ;
-	if $(type) = SHARED_LIB &&
-		( ! ( [ $(property-set).get <target-os> ] in windows cygwin ) )
+	# static libraries are not versioned
+	if $(type) = STATIC_LIB
 	{
-		return $(name).$(VERSION) ;
+		return [ virtual-target.add-prefix-and-suffix $(name)-rasterbar : $(type) : $(property-set) ] ;
 	}
 
-	return $(name) ;
+	# shared libraries have the version number before the filename extension on
+	# windows
+	if [ $(property-set).get <target-os> ] in windows cygwin
+	{
+		return [ virtual-target.add-prefix-and-suffix $(name)-rasterbar-$(VERSION) : $(type) : $(property-set) ] ;
+	}
+	else
+	{
+		local name = [ virtual-target.add-prefix-and-suffix $(name)-rasterbar : $(type) : $(property-set) ] ;
+		return $(name).$(VERSION) ;
+	}
 }
 
 # the search path to pick up the openssl libraries from. This is the <search>
@@ -814,9 +825,11 @@ rule generate-pkg-config ( properties * )
 
 	# these are the properties we're using to build it with
 	local props = [ $(t).generate [ property-set.create $(properties) ] ] ;
+	local libname = [ $(props[2]).name ] ;
 	props = $(props[1]) ;
 
 	local FULL_VERSION = 1.2.13 ;
+
 	local libdir ;
 	local includedir ;
 
@@ -847,17 +860,9 @@ rule generate-pkg-config ( properties * )
 		includedir = [ $(p).includedir ] ;
 	}
 
-	local soname = [ virtual-target.add-prefix-and-suffix "torrent-rasterbar" : SHARED_LIB : $(props) ] ;
-
-	if ! <target-os>windows in $(properties) && ! <target-os>cygwin in $(properties)
-	{
-		soname = "$(soname).$(VERSION)" ;
-	}
-	local libname = [ virtual-target.add-prefix-and-suffix "torrent-rasterbar" : STATIC_LIB : $(props) ] ;
-
-	local defines ;
-	local shared_deps ;
-	local private_deps ;
+	local defines = "" ;
+	local shared_deps = "" ;
+	local private_deps = "" ;
 	for d in [ feature.expand $(properties) ] [ $(props).raw ] {
 		switch $(d)
 		{
@@ -892,8 +897,8 @@ rule generate-pkg-config ( properties * )
 		"\nDescription: libtorrent is an open source C++ library implementing the BitTorrent protocol"
 		"\nURL: https://libtorrent.org"
 		"\nVersion: $(FULL_VERSION)"
-		"\nLibs: -L$(libdir) -l$(soname) $(shared_deps:J=)"
-		"\nLibs.private: -L$(libdir) -l$(libname) $(shared_deps:J=) $(private_deps:J=)"
+		"\nLibs: -L$(libdir) -l$(libname) $(shared_deps:J=)"
+		"\nLibs.private: -L$(libdir) $(private_deps:J=)"
 		"\nCflags: -I$(includedir) $(defines:J=)"
 		"\n"
 		;
