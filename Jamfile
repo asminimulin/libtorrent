@@ -848,9 +848,12 @@ rule generate-pkg-config ( properties * )
 	}
 
 	local soname = [ virtual-target.add-prefix-and-suffix "torrent-rasterbar" : SHARED_LIB : $(props) ] ;
-	soname = "$(soname).$(VERSION)" ;
+
+	if ! <target-os>windows in $(properties) && ! <target-os>cygwin in $(properties)
+	{
+		soname = "$(soname).$(VERSION)" ;
+	}
 	local libname = [ virtual-target.add-prefix-and-suffix "torrent-rasterbar" : STATIC_LIB : $(props) ] ;
-	libname = "$(libname).$(VERSION)" ;
 
 	local defines ;
 	local shared_deps ;
